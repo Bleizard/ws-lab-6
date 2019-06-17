@@ -1,6 +1,5 @@
 package ru.ifmo.web.standalone;
 
-import com.sun.jersey.api.core.ClassNamesResourceConfig;
 import com.sun.jersey.api.container.grizzly2.GrizzlyServerFactory;
 
 import com.sun.jersey.api.core.PackagesResourceConfig;
@@ -18,7 +17,8 @@ public class App {
     public static void main(String... args) throws DatatypeConfigurationException, SQLException, IOException {
         String url = "http://0.0.0.0:8080/";
         PackagesResourceConfig config = new PackagesResourceConfig(UsersService.class.getPackage().getName(),
-                ThrottlingExceptionMapper.class.getPackage().getName());
+                ThrottlingExceptionMapper.class.getPackage().getName()
+        );
         log.info("Creating server");
         HttpServer server = GrizzlyServerFactory.createHttpServer(url, config);
         log.info("Starting server");

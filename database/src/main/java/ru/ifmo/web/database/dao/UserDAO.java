@@ -190,4 +190,31 @@ public class UserDAO {
         PreparedStatement s = connection.prepareStatement(c);
         return s.executeUpdate();
     }
+
+    public User findByCredentials(String username, String password) throws SQLException {
+        CriteriaBuilder cb = new CriteriaBuilder();
+        cb = cb.select()
+                .selectors(columnNames)
+                .from(TABLE_NAME);
+        Predicate where = new Predicate();
+        Predicate predicate = addEqualsPredicate(where, LOGIN, username);
+        predicate = addEqualsPredicate(predicate, PASSWORD, password);
+        cb = cb.where(predicate);
+
+        String c = cb.toString();
+        log.debug("Query string {}", cb);
+        try (Connection connection = dataSource.getConnection()) {
+            Statement s = connection.createStatement();
+            ResultSet rs = s.executeQuery(c);
+            return resultSetToEntity(rs);
+        }
+    }
+
+    private User resultSetToEntity(ResultSet rs) throws SQLException {
+        User result = null;
+        if (rs.next()) {
+            result = toEntity(rs);
+        }
+        return result;
+    }
 }

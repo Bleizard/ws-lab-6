@@ -10,12 +10,15 @@ import ru.ifmo.web.database.dto.UserDTO;
 import ru.ifmo.web.database.entity.User;
 import ru.ifmo.web.filter.ThrottlingFilter;
 import ru.ifmo.web.standalone.App;
+import ru.ifmo.web.util.AuthenticationException;
+import ru.ifmo.web.util.ForbiddenException;
 import ru.ifmo.web.util.UserServiceException;
 
 import javax.jws.WebMethod;
 import javax.sql.DataSource;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -28,6 +31,7 @@ import java.io.InputStream;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
@@ -89,7 +93,9 @@ public class UsersService {
     @Path("/{id}")
     @WebMethod
     @Produces(MediaType.TEXT_PLAIN)
-    public String delete(@PathParam("id") Long id) throws UserServiceException {
+    public String delete(@PathParam("id") Long id, @HeaderParam("authorization") String authHeader)
+            throws UserServiceException, AuthenticationException, ForbiddenException {
+        checkAuthenticated(authHeader);
         try {
             if (id == null ) {
                 throw new UserServiceException("Id can't be null");
@@ -109,7 +115,9 @@ public class UsersService {
     @POST
     @WebMethod
     @Produces(MediaType.TEXT_PLAIN)
-    public String insert(UserDTO userDTO) throws UserServiceException  {
+    public String insert(UserDTO userDTO, @HeaderParam("authorization") String authHeader)
+            throws UserServiceException, AuthenticationException, ForbiddenException  {
+        checkAuthenticated(authHeader);
         try {
             Date parse = new SimpleDateFormat("yyyy-MM-dd").parse(userDTO.getRegisterDate());
             return String.valueOf(userDAO.insert(userDTO.getLogin(), userDTO.getPassword(),
@@ -126,8 +134,10 @@ public class UsersService {
     @PUT
     @Path("/{id}")
     @Produces(MediaType.TEXT_PLAIN)
-    public String update(@PathParam("id") Long id, UserDTO userDTO) throws UserServiceException   {
+    public String update(@PathParam("id") Long id, @HeaderParam("authorization") String authHeader, UserDTO userDTO)
+            throws UserServiceException, AuthenticationException, ForbiddenException {
         int update = 0;
+        checkAuthenticated(authHeader);
         try {
             Date parse = null;
             if (userDTO.getRegisterDate() != null) {
@@ -148,5 +158,35 @@ public class UsersService {
         return String.valueOf(update);
     }
 
+    private void checkAuthenticated(String authString) throws AuthenticationException, ForbiddenException {
+        if (authString == null || authString.equals("")) {
+            throw new AuthenticationException("Authorization required for CRUD operations");
+        }
 
+        try {
+            String[] authParts = authString.split("\\s+");
+            String authInfo = authParts[1];
+
+            String decodedString = new String(Base64.getDecoder().decode(authInfo));
+
+            authParts = decodedString.split(":");
+            User user = loadUserFromDB(authParts[0], authParts[1]);
+            if (user == null ) {
+                throw new ForbiddenException("Wrong login/password");
+            }
+        } catch (IllegalArgumentException e) {
+            throw new ForbiddenException("Wrong login/password");
+        }
+    }
+
+    private User loadUserFromDB(final String username, final String password) {
+        User user = null;
+        try {
+            user = userDAO.findByCredentials(username, password);
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+        }
+        return user;
+    }
 }
