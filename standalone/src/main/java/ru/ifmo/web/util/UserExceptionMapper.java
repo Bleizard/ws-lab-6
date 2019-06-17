@@ -1,4 +1,4 @@
-package ru.ifmo.web.service;
+package ru.ifmo.web.util;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;

@@ -1,4 +1,4 @@
-package ru.ifmo.web.service;
+package ru.ifmo.web.util;
 
 public class UserServiceException extends Exception {
     public UserServiceException(String message) {

@@ -1,5 +1,6 @@
 package ru.ifmo.web.service;
 
+import com.sun.jersey.spi.container.ResourceFilters;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Data;
@@ -7,7 +8,9 @@ import lombok.extern.slf4j.Slf4j;
 import ru.ifmo.web.database.dao.UserDAO;
 import ru.ifmo.web.database.dto.UserDTO;
 import ru.ifmo.web.database.entity.User;
+import ru.ifmo.web.filter.ThrottlingFilter;
 import ru.ifmo.web.standalone.App;
+import ru.ifmo.web.util.UserServiceException;
 
 import javax.jws.WebMethod;
 import javax.sql.DataSource;
@@ -31,6 +34,7 @@ import java.util.Properties;
 
 @Data
 @Slf4j
+@ResourceFilters(ThrottlingFilter.class)
 @Path("/users")
 public class UsersService {
     private UserDAO userDAO;
@@ -51,7 +55,7 @@ public class UsersService {
     }
 
     @GET
-    @Path("/all")
+    @Path("/")
     @Produces({MediaType.APPLICATION_JSON})
     public List<User> findAll() throws SQLException {
         return userDAO.findAll();
