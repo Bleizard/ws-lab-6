@@ -1,6 +1,8 @@
 package ru.ifmo.web.service;
 
 import com.sun.jersey.spi.container.ResourceFilters;
+import com.sun.jersey.multipart.FormDataParam;
+
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.Data;
@@ -16,6 +18,7 @@ import ru.ifmo.web.util.UserServiceException;
 
 import javax.jws.WebMethod;
 import javax.sql.DataSource;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
@@ -26,8 +29,10 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.sql.SQLException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -35,6 +40,8 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Data
 @Slf4j
@@ -156,6 +163,41 @@ public class UsersService {
             throw new UserServiceException("Couldn't parse date");
         }
         return String.valueOf(update);
+    }
+
+    @POST
+    @Path("/{id}/upload")
+    @Consumes({MediaType.MULTIPART_FORM_DATA})
+    @Produces(MediaType.TEXT_PLAIN)
+    public String uploadFile(
+            @PathParam("id") Long id,
+            @FormDataParam("file") InputStream fileInputStream,
+            @HeaderParam("authorization") String authString)
+            throws AuthenticationException, ForbiddenException, SQLException {
+
+        checkAuthenticated(authString);
+
+        List<User> withFilters = userDAO.findWithFilters(id, null, null, null, null, null);
+        User user = withFilters.get(0);
+        String fileName = null;
+        try {
+            String FILE_TRASH_BASE = "/tmp/";
+
+            File directory = new File(FILE_TRASH_BASE + user.getLogin());
+            if (! directory.exists()) {
+                directory.mkdir();
+            }
+
+            fileName = new SimpleDateFormat("ddMMyy-hhmmss.SSS").format(new Date());
+            File file = new File(FILE_TRASH_BASE + user.getLogin() + "/" +
+                    fileName);
+
+            Files.copy(fileInputStream, file.toPath());
+        } catch (IOException e) {
+            Logger.getLogger(UserDAO.class.getName()).log(Level.SEVERE, null, e);
+            return null;
+        }
+        return fileName;
     }
 
     private void checkAuthenticated(String authString) throws AuthenticationException, ForbiddenException {

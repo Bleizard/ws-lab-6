@@ -1,11 +1,19 @@
 package ru.ifmo.web.client;
 
+import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.GenericType;
+import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.multipart.FormDataMultiPart;
+import com.sun.jersey.multipart.MultiPart;
+import com.sun.jersey.multipart.file.FileDataBodyPart;
 import ru.ifmo.web.client.util.Command;
 import ru.ifmo.web.client.util.UsersResourceIntegration;
 import ru.ifmo.web.database.dto.UserDTO;
 import ru.ifmo.web.database.entity.User;
 
+import javax.ws.rs.core.MediaType;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
@@ -70,6 +78,14 @@ public class Client {
                         System.out.print("Введите id пользователя, которого хотите удалить: ");
                         id = readLong(reader);
                         System.out.println(usersResourceIntegration.delete(id));
+                        break;
+                    case UPLOAD_FILE:
+                        System.out.print("Введите id пользователя, для которого хотите загрузить файл: ");
+                        id = readLong(reader);
+                        System.out.println("Введите путь к файлу:");
+                        String path = readString(reader);
+                        File file = new File(path);
+                        System.out.println(usersResourceIntegration.uploadFile(id, file));
                         break;
                     case QUIT:
                         return;
